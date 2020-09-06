@@ -5,6 +5,10 @@ import cv2
 import datetime
 import os
 import time
+import json
+import sys
+import requests
+import numpy as np
 
 def create_home_screen(obj):
     obj.lab_home = tki.Label(text="Bem Vindo")
@@ -119,9 +123,27 @@ def action2(obj):
     ts = datetime.datetime.now()
     filename = "{}.jpg".format(ts.strftime("%Y-%m-%d_%H-%M-%S"))
     p = os.path.sep.join((obj.outputPath, filename))
-    cv2.imwrite(p, obj.frame.copy())
+    frame = obj.frame.copy()
+    cv2.imwrite(p, frame)
     obj.last_photo = p
     print("[INFO] saved {}".format(filename))
+
+    # YOLO
+    frame = cv2.resize(frame, None, fx=0.4, fy=0.4)
+    frame = frame.tolist()
+    data = json.dumps(frame)
+    print(sys.getsizeof(data))
+    res = requests.post('http://localhost:5000/api/prediction', json = data)
+    #res = requests.post('http://aws-test.eba-gajbic4g.sa-east-1.elasticbeanstalk.com/api/prediction', json = data)
+    if res.ok:
+        print("res ok")
+        res = res.json()
+        print(res["qtd"])
+        obj.price = res["qtd"]
+        img = res["data"]
+        img = cv2.UMat(np.array(img, dtype=np.uint8))
+        cv2.imwrite(p, img)
+        obj.last_photo = p
 
 def action3(obj):
     hide_client_show(obj)
@@ -178,11 +200,14 @@ def state2(obj):
     if obj.last_photo:
         obj.frame = cv2.imread(obj.last_photo)
         obj.last_photo = None
+        
+        # display yolo image 
         obj.image = cv2.cvtColor(obj.frame, cv2.COLOR_BGR2RGB)
         obj.image = Image.fromarray(obj.image)
         obj.image = ImageTk.PhotoImage(obj.image)
         obj.panel.configure(image=obj.image)
         obj.panel.image = obj.image
+        obj.lab_checkout.configure(text="Quantidade comprada: %d"%obj.price[0])
 
 def state4(obj):
     time0 = time.time()
