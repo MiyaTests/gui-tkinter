@@ -138,8 +138,8 @@ def action2(obj):
     if res.ok:
         print("res ok")
         res = res.json()
-        print(res["qtd"])
-        obj.price = res["qtd"]
+        print(res["cart"])
+        obj.cart = res["cart"]
         img = res["data"]
         img = cv2.UMat(np.array(img, dtype=np.uint8))
         cv2.imwrite(p, img)
@@ -207,7 +207,14 @@ def state2(obj):
         obj.image = ImageTk.PhotoImage(obj.image)
         obj.panel.configure(image=obj.image)
         obj.panel.image = obj.image
-        obj.lab_checkout.configure(text="Quantidade comprada: %d"%obj.price[0])
+        msg = "CARRINHO\n\n"
+        total = 0
+        for product in obj.cart['productList']:
+            msg += "%s: %d x %f\n"%(product['name'], product['quantity'], product['itemPrice'])
+            total += product['quantity'] * product['itemPrice']
+        msg += "-----------------------------------------\n"
+        msg += "Total: %f"%(total)
+        obj.lab_checkout.configure(text=msg)
 
 def state4(obj):
     time0 = time.time()
